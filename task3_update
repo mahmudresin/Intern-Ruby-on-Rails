@@ -1,0 +1,93 @@
+import sys
+import random
+import hmac
+import hashlib
+from typing import List, Tuple
+
+class KeyGenerator:
+    @staticmethod
+    def generate_key(length: int = 256) -> bytes:
+        return random.SystemRandom().randbytes(length // 8)
+
+class HMACGenerator:
+    @staticmethod
+    def generate_hmac(key: bytes, message: Tuple[str, ...]) -> bytes:
+        return hmac.new(key, ''.join(message).encode(), hashlib.sha256).digest()
+
+class RPSRules:
+    MOVES = []
+
+    @staticmethod
+    def get_winner(move1: Tuple, move2: Tuple) -> str:
+        move1_index, move2_index = RPSRules.MOVES.index(move1), RPSRules.MOVES.index(move2)
+        next_moves = RPSRules.MOVES[(move1_index + 1) % len(RPSRules.MOVES):] + RPSRules.MOVES[:move1_index]
+        prev_moves = RPSRules.MOVES[move2_index + 1:] + RPSRules.MOVES[:move2_index]
+        return 'user' if next_moves.count(move2) > len(next_moves) // 2 else 'computer' if prev_moves.count(move1) > len(prev_moves) // 2 else 'tie'
+
+    @staticmethod
+    def get_help_table(moves: List[Tuple]) -> str:
+        table = "\n"
+        table += "   " + "   ".join(move[0] for move in moves) + "\n"
+        for row_index, row in enumerate(moves):
+            table += f"{row[0]} " if row_index != len(moves) - 1 else f"{row[0]} +\n"
+            for move in moves:
+                if RPSRules.get_winner(row, move) == 'user':
+                    table += "Win  "
+                elif RPSRules.get_winner(row, move) == 'computer':
+                    table += "Lose "
+                else:
+                    table += "Draw "
+            table += "\n"
+        return table
+
+class RPGame:
+    @staticmethod
+    def main():
+        moves = [tuple(arg) for arg in sys.argv[1:-1]]
+        if len(moves) % 2 != 1:
+            print("Error: Number of moves must be an odd number greater than 3.")
+            sys.exit(1)
+        RPSRules.MOVES = moves
+        key = KeyGenerator.generate_key()
+        computer_move = random.choice(moves)
+        hmac_message = computer_move
+        hmac_key = key
+        hmac_value = HMACGenerator.generate_hmac(hmac_key, hmac_message)
+
+        print("Available moves:")
+        for move_index, move in enumerate(moves):
+            print(f"{move_index + 1} - {move[0]}")
+        print("0 - Exit")
+        print("? - Help")
+
+        while True:
+            user_move = input("Enter your move: ").strip()
+            try:
+                user_move = int(user_move)
+                if user_move == 0:
+                    break
+                if user_move < 1 or user_move > len(moves):
+                    raise ValueError
+            except ValueError:
+                print("Invalid move. Please enter a number between 1 and", len(moves), "or 0 to exit or ? for help.")
+                continue
+
+            if user_move == '?':
+                print(RPSRules.get_help_table(moves))
+                continue
+
+            computer_move = random.choice(moves)
+            hmac_message += computer_move
+            hmac_value = HMACGenerator.generate_hmac(hmac_key, hmac_message)
+
+            print(f"HMAC (hex): {hmac_value.hex()}")
+
+            user_move = moves[user_move - 1]
+            result = RPSRules.get_winner(user_move, computer_move)
+
+            print(f"You played: {user_move[0]}")
+            print(f"Computer played: {computer_move[0]}")
+            print(f"Result: {result}")
+
+if __name__ == "__main__":
+    RPGame.main()
