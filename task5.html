@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fake User Data Generation</title>
+  <style>
+    /* Add your CSS styles here */
+  </style>
+</head>
+<body>
+  <h1>Fake User Data Generation</h1>
+  <div>
+    <label for="region">Select Region:</label>
+    <select id="region">
+      <option value="poland">Poland</option>
+      <option value="usa">USA</option>
+      <option value="georgia">Georgia</option>
+    </select>
+  </div>
+  <div>
+    <label for="error">Errors per Record:</label>
+    <input type="range" id="error" min="0" max="10">
+    <input type="number" id="errorCount" min="0" max="1000" readonly>
+  </div>
+  <div>
+    <label for="seed">Seed Value:</label>
+    <input type="text" id="seed">
+    <button id="randomSeed">Random</button>
+  </div>
+  <table id="userData">
+    <thead>
+      <tr>
+        <th>Index</th>
+        <th>Random Identifier</th>
+        <th>Name</th>
+        <th>Address</th>
+        <th>Phone</th>
+      </tr>
+    </thead>
+    <tbody id="userDataBody">
+      <!-- User data will be populated here -->
+    </tbody>
+  </table>
+
+  <script>
+    const regionData = {
+      poland: {
+        names: ["Adam", "Ewa", "Jan", "Anna", "Piotr", "Maria"],
+        lastNames: ["Nowak", "Kowalski", "Wiśniewski", "Dąbrowski", "Lewandowski", "Wójcik"],
+        streets: ["ul. Słoneczna", "ul. Polna", "ul. Kwiatowa", "ul. Leśna", "ul. Ogrodowa"],
+        cities: ["Warsaw", "Krakow", "Gdansk", "Wroclaw", "Poznan"],
+        phoneCodes: ["+48", "+48", "+48", "+48", "+48"]
+      },
+      usa: {
+        names: ["James", "John", "Robert", "Michael", "William", "David"],
+        lastNames: ["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia"],
+        streets: ["Main St", "Broadway", "Oak St", "Elm St", "Maple Ave"],
+        cities: ["New York", "Los Angeles", "Chicago", "Houston", "Phoenix"],
+        phoneCodes: ["+1", "+1", "+1", "+1", "+1"]
+      },
+      georgia: {
+        names: ["Giorgi", "Nino", "David", "Anna", "Lasha", "Mariam"],
+        lastNames: ["Gogoladze", "Abashidze", "Chkhaidze", "Japaridze", "Kapanadze", "Nozadze"],
+        streets: ["რუსთაველის გამზირი", "ნინო ცისკარიძის ქ.", "გორი დიღომი"],
+        cities: ["Tbilisi", "Kutaisi", "Batumi", "Rustavi", "Zugdidi"],
+        phoneCodes: ["+995", "+995", "+995", "+995", "+995"]
+      }
+    };
+
+    function getRandomItemFromArray(arr) {
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function generateName(region) {
+      const names = regionData[region].names;
+      const lastNames = regionData[region].lastNames;
+      return `${getRandomItemFromArray(names)} ${getRandomItemFromArray(lastNames)}`;
+    }
+
+    function generateAddress(region) {
+      const streets = regionData[region].streets;
+      const cities = regionData[region].cities;
+      return `${getRandomItemFromArray(streets)}, ${getRandomItemFromArray(cities)}`;
+    }
+
+    function generatePhoneNumber(region) {
+      const phoneCodes = regionData[region].phoneCodes;
+      const randomNumber = Math.floor(Math.random() * 10000000).toString().padStart(7, '0');
+      return `${getRandomItemFromArray(phoneCodes)} ${randomNumber}`;
+    }
+
+    function generateUserData(region, errorCount) {
+      const userData = [];
+      for (let i = 1; i <= 20; i++) {
+        let name = generateName(region);
+        let address = generateAddress(region);
+        let phone = generatePhoneNumber(region);
+
+        // Introduce errors
+        for (let j = 0; j < errorCount; j++) {
+          let fieldToError = Math.floor(Math.random() * 3); // 0 for name, 1 for address, 2 for phone
+          if (fieldToError === 0) {
+            name += ' (error)';
+          } else if (fieldToError === 1) {
+            address += ' (error)';
+          } else {
+            phone += ' (error)';
+          }
+        }
+
+        userData.push({ index: i, randomIdentifier: Math.random().toString(36).substr(2, 9), name, address, phone });
+      }
+      return userData;
+    }
+
+    function updateTable(userData) {
+      const tbody = document.getElementById('userDataBody');
+      tbody.innerHTML = '';
+      userData.forEach(user => {
+        const row = `<tr>
+                      <td>${user.index}</td>
+                      <td>${user.randomIdentifier}</td>
+                      <td>${user.name}</td>
+                      <td>${user.address}</td>
+                      <td>${user.phone}</td>
+                    </tr>`;
+        tbody.innerHTML += row;
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      const regionSelect = document.getElementById('region');
+      const errorRange = document.getElementById('error');
+      const errorCountInput = document.getElementById('errorCount');
+      const seedInput = document.getElementById('seed');
+      const randomSeedBtn = document.getElementById('randomSeed');
+
+      function generateRandomSeed() {
+        seedInput.value = Math.floor(Math.random() * 1000000);
+      }
+
+      function updateErrorCount() {
+        errorCountInput.value = errorRange.value;
+      }
+
+      function updateTableAndScroll() {
+        const region = regionSelect.value;
+        const errorCount = parseInt(errorCountInput.value);
+        const userData = generateUserData(region, errorCount);
+        updateTable(userData);
+      }
+
+      regionSelect.addEventListener('change', updateTableAndScroll);
+      errorRange.addEventListener('input', () => {
+        updateErrorCount();
+        updateTableAndScroll();
+      });
+      randomSeedBtn.addEventListener('click', generateRandomSeed);
+
+      updateErrorCount();
+      updateTableAndScroll();
+    });
+  </script>
+</body>
+</html>
